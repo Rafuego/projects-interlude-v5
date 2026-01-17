@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Interlude Handoff',
+  title: 'Interlude Studio | Handoff',
   description: 'Project handoff platform by Interlude Studio',
 }
 
