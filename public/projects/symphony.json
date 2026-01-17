@@ -1,0 +1,79 @@
+{
+  "name": "Symphony",
+  "client": "Interlude",
+  "type": "brand",
+  "date": "January 2026",
+  "overview": "Complete brand identity system including primary and secondary logos, color palette, typography specifications, and usage guidelines.",
+  
+  "research": {
+    "documents": [
+      {
+        "id": 1,
+        "name": "Brand Strategy Document",
+        "fileType": "PDF",
+        "description": "Comprehensive brand positioning, audience analysis, and strategic recommendations",
+        "uploadDate": "January 10, 2026",
+        "file": null
+      }
+    ],
+    "notes": [
+      {
+        "id": 1,
+        "title": "Key Strategic Insight",
+        "content": "The brand should position itself at the intersection of editorial sophistication and startup agility.",
+        "author": "Strategy Team",
+        "date": "January 12, 2026"
+      }
+    ]
+  },
+  
+  "logos": [
+    { "id": 1, "name": "Primary Logo", "format": "SVG, PNG, PDF", "usage": "Primary brand mark for most applications", "preview": "Symphony", "file": null },
+    { "id": 2, "name": "Secondary Logo", "format": "SVG, PNG", "usage": "Simplified mark for small applications", "preview": "S", "file": null }
+  ],
+  
+  "colors": [
+    { "id": 1, "name": "Taupe", "hex": "#A89585", "rgb": "168, 149, 133", "usage": "Primary accent, headers, CTAs" },
+    { "id": 2, "name": "Charcoal", "hex": "#2C2C2C", "rgb": "44, 44, 44", "usage": "Primary text, headlines" },
+    { "id": 3, "name": "Warm White", "hex": "#F8F6F3", "rgb": "248, 246, 243", "usage": "Primary backgrounds" }
+  ],
+  
+  "typography": [
+    { "id": 1, "name": "Display", "family": "Freight Display Pro", "weight": "400", "usage": "Headlines, hero text, large titles", "file": null },
+    { "id": 2, "name": "Body", "family": "Freight Text Pro", "weight": "400, 500", "usage": "Body copy, paragraphs, descriptions", "file": null }
+  ],
+  
+  "figmaLink": "https://figma.com/file/abc123",
+  
+  "webpages": [
+    {
+      "id": 1,
+      "name": "Homepage",
+      "status": "Ready for dev",
+      "figmaLink": "https://figma.com/file/abc123?node-id=0%3A1",
+      "screenshot": null,
+      "notes": "Hero animation triggers on scroll. CTA links to /signup.",
+      "additionalNotes": [
+        "Header should transition from transparent to solid white after 100px scroll"
+      ],
+      "links": [
+        { "element": "Primary CTA", "destination": "/signup" },
+        { "element": "Logo", "destination": "/" }
+      ]
+    }
+  ],
+  
+  "animations": [
+    { "id": 1, "name": "Hero Reveal", "animationType": "lottie", "format": "Lottie JSON", "notes": "Triggers on page load, 2s duration", "file": null, "animationData": null },
+    { "id": 2, "name": "Logo Animation", "animationType": "lottie", "format": "Lottie JSON", "notes": "Used for loading states", "file": null, "animationData": null }
+  ],
+  
+  "devNotes": [
+    "All images should use next/image with lazy loading",
+    "Mobile breakpoint: 768px, Tablet: 1024px"
+  ],
+  
+  "helpDocs": [
+    { "title": "Brand Guidelines", "url": "", "description": "" }
+  ]
+}
