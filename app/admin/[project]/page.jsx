@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getProjectById, updateProject, checkSlugAvailable } from '../../../lib/supabase';
+import { getProjectById, updateProject, checkSlugAvailable, uploadFile } from '../../../lib/supabase';
 import HandoffPlatform from '../../../components/HandoffPlatform.jsx';
 
 export default function AdminProjectPage() {
@@ -96,6 +96,15 @@ export default function AdminProjectPage() {
     setProject(updatedProject);
     saveProject(updatedProject);
   };
+
+  const handleFileUpload = useCallback(async (file, folder) => {
+    if (!projectId) return null;
+    const result = await uploadFile(projectId, file, folder);
+    if (result) {
+      return result.url;
+    }
+    throw new Error('Upload failed');
+  }, [projectId]);
 
   const copyClientLink = () => {
     const baseUrl = window.location.origin;
@@ -465,10 +474,11 @@ export default function AdminProjectPage() {
 
       {/* Main Content - Handoff Platform in Edit Mode */}
       <div style={{ paddingTop: '56px' }}>
-        <HandoffPlatform 
+        <HandoffPlatform
           projectSlug={null}
           initialProject={project}
           onSave={saveProject}
+          onFileUpload={handleFileUpload}
           isAdmin={true}
         />
       </div>
