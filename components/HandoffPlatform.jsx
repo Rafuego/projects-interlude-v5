@@ -97,44 +97,52 @@ const EditableField = ({ value, onChange, style, placeholder, multiline = false 
   );
 };
 
-const FileUploadZone = ({ onUpload, accept, children, style }) => {
+const FileUploadZone = ({ onUpload, accept, children, style, multiple = false }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
-  
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
   };
-  
+
   const handleDragIn = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
-  
+
   const handleDragOut = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
-  
+
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      onUpload(files[0]);
+      if (multiple) {
+        onUpload(Array.from(files));
+      } else {
+        onUpload(files[0]);
+      }
     }
   };
-  
+
   const handleChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      onUpload(e.target.files[0]);
+      if (multiple) {
+        onUpload(Array.from(e.target.files));
+      } else {
+        onUpload(e.target.files[0]);
+      }
     }
   };
-  
+
   return (
     <div
       onClick={() => inputRef.current?.click()}
@@ -155,6 +163,7 @@ const FileUploadZone = ({ onUpload, accept, children, style }) => {
         type="file"
         accept={accept}
         onChange={handleChange}
+        multiple={multiple}
         style={{ display: 'none' }}
       />
       {children}
@@ -320,6 +329,7 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
   const [copiedColor, setCopiedColor] = useState(null);
   const [isLoading, setIsLoading] = useState(!!projectSlug);
   const [isUploading, setIsUploading] = useState(false);
+  const [bulkUploadProgress, setBulkUploadProgress] = useState(null); // { current, total }
   
   // Default project data
   const defaultProject = {
@@ -504,6 +514,90 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
     } else {
       reader.readAsDataURL(file);
     }
+  };
+
+  // Bulk upload: accepts an array of files, a section name, and a function that creates a new item from a file
+  const handleBulkUpload = async (section, files, createItemFromFile) => {
+    if (!files || files.length === 0) return;
+    setBulkUploadProgress({ current: 0, total: files.length });
+
+    const newItems = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setBulkUploadProgress({ current: i + 1, total: files.length });
+      const item = createItemFromFile(file);
+
+      if (onFileUpload) {
+        try {
+          const fileUrl = await onFileUpload(file, section);
+          item.file = file.name;
+          item.fileUrl = fileUrl;
+
+          // Handle Lottie JSON
+          if (file.name.endsWith('.json')) {
+            try {
+              const text = await file.text();
+              item.animationData = JSON.parse(text);
+            } catch (err) {
+              console.error('Invalid JSON:', file.name);
+            }
+          }
+        } catch (error) {
+          console.error('Upload error for', file.name, error);
+          item.file = file.name;
+        }
+      } else {
+        // Fallback: base64 / local
+        item.file = file.name;
+        if (file.name.endsWith('.json')) {
+          try {
+            const text = await file.text();
+            item.animationData = JSON.parse(text);
+          } catch (err) {
+            console.error('Invalid JSON:', file.name);
+          }
+        } else {
+          const dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+          });
+          item.fileUrl = dataUrl;
+
+          // For video files, also set videoUrl
+          if (file.type.startsWith('video/')) {
+            item.videoUrl = dataUrl;
+          }
+          // For image files used as screenshots
+          if (item._isScreenshot && file.type.startsWith('image/')) {
+            item.screenshot = dataUrl;
+            delete item._isScreenshot;
+          }
+        }
+      }
+
+      newItems.push(item);
+    }
+
+    // Batch update state with all new items
+    setProject(prev => {
+      if (section === 'research') {
+        return {
+          ...prev,
+          research: {
+            ...prev.research,
+            documents: [...prev.research.documents, ...newItems]
+          }
+        };
+      }
+      return {
+        ...prev,
+        [section]: [...prev[section], ...newItems]
+      };
+    });
+
+    setBulkUploadProgress(null);
   };
 
   return (
@@ -810,6 +904,40 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                 </h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Bulk Upload Zone */}
+                  {isAdmin && (
+                    <FileUploadZone
+                      accept=".pdf"
+                      multiple={true}
+                      onUpload={(files) => {
+                        const fileArray = Array.isArray(files) ? files : [files];
+                        handleBulkUpload('research', fileArray, (file) => ({
+                          id: Date.now() + Math.random(),
+                          name: file.name.replace(/\.[^/.]+$/, ''),
+                          fileType: 'PDF',
+                          description: '',
+                          uploadDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                          file: null,
+                        }));
+                      }}
+                      style={{
+                        padding: '24px',
+                        textAlign: 'center',
+                        borderRadius: '4px',
+                        backgroundColor: '#FAF9F7',
+                      }}
+                    >
+                      <p style={{
+                        fontSize: '13px',
+                        fontFamily: '"DM Sans", system-ui, sans-serif',
+                        color: '#888',
+                        margin: 0,
+                      }}>
+                        {bulkUploadProgress ? `Uploading ${bulkUploadProgress.current} of ${bulkUploadProgress.total}...` : 'Drop PDFs here or click to select multiple'}
+                      </p>
+                    </FileUploadZone>
+                  )}
+
                   {project.research.documents.map((doc, index) => (
                     <div 
                       key={doc.id}
@@ -1123,6 +1251,44 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
               }}>
                 Logo Assets
               </h2>
+
+              {/* Bulk Upload Zone */}
+              {isAdmin && (
+                <FileUploadZone
+                  accept=".svg,.png,.pdf,image/svg+xml,image/png,application/pdf"
+                  multiple={true}
+                  onUpload={(files) => {
+                    const fileArray = Array.isArray(files) ? files : [files];
+                    handleBulkUpload('logos', fileArray, (file) => {
+                      const name = file.name.replace(/\.[^/.]+$/, '');
+                      return {
+                        id: Date.now() + Math.random(),
+                        name: name,
+                        variant: 'Primary',
+                        format: file.name.split('.').pop().toUpperCase(),
+                        file: null,
+                        fileUrl: null,
+                      };
+                    });
+                  }}
+                  style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    borderRadius: '4px',
+                    backgroundColor: '#FAF9F7',
+                    marginBottom: '32px',
+                  }}
+                >
+                  <p style={{
+                    fontSize: '13px',
+                    fontFamily: '"DM Sans", system-ui, sans-serif',
+                    color: '#888',
+                    margin: 0,
+                  }}>
+                    {bulkUploadProgress ? `Uploading ${bulkUploadProgress.current} of ${bulkUploadProgress.total}...` : 'Drop logo files here or click to select multiple (SVG, PNG, PDF)'}
+                  </p>
+                </FileUploadZone>
+              )}
 
               <div style={{
                 display: 'grid',
@@ -1478,6 +1644,44 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                 Typography System
               </h2>
 
+              {/* Bulk Upload Zone */}
+              {isAdmin && (
+                <FileUploadZone
+                  accept=".ttf,.otf,.woff,.woff2"
+                  multiple={true}
+                  onUpload={(files) => {
+                    const fileArray = Array.isArray(files) ? files : [files];
+                    handleBulkUpload('typography', fileArray, (file) => {
+                      const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                      return {
+                        id: Date.now() + Math.random(),
+                        name: name,
+                        weight: 'Regular',
+                        category: 'Sans Serif',
+                        file: null,
+                        fileUrl: null,
+                      };
+                    });
+                  }}
+                  style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    borderRadius: '4px',
+                    backgroundColor: '#FAF9F7',
+                    marginBottom: '32px',
+                  }}
+                >
+                  <p style={{
+                    fontSize: '13px',
+                    fontFamily: '"DM Sans", system-ui, sans-serif',
+                    color: '#888',
+                    margin: 0,
+                  }}>
+                    {bulkUploadProgress ? `Uploading ${bulkUploadProgress.current} of ${bulkUploadProgress.total}...` : 'Drop font files here or click to select multiple (TTF, OTF, WOFF, WOFF2)'}
+                  </p>
+                </FileUploadZone>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {project.typography.map((type, index) => (
                   <div 
@@ -1661,6 +1865,50 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
               }}>
                 Animation Assets
               </h2>
+
+              {/* Bulk Upload Zone */}
+              {isAdmin && (
+                <FileUploadZone
+                  accept=".json,.mp4,.c4d,.obj,.fbx,video/mp4"
+                  multiple={true}
+                  onUpload={(files) => {
+                    const fileArray = Array.isArray(files) ? files : [files];
+                    handleBulkUpload('animations', fileArray, (file) => {
+                      const name = file.name.replace(/\.[^/.]+$/, '');
+                      const ext = file.name.split('.').pop().toLowerCase();
+                      let type = 'lottie';
+                      if (ext === 'mp4' || file.type.startsWith('video/')) type = 'video';
+                      else if (['c4d', 'obj', 'fbx'].includes(ext)) type = '3d';
+                      return {
+                        id: Date.now() + Math.random(),
+                        name: name,
+                        type: type,
+                        file: null,
+                        fileUrl: null,
+                        animationData: null,
+                        videoUrl: null,
+                        embedUrl: '',
+                      };
+                    });
+                  }}
+                  style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    borderRadius: '4px',
+                    backgroundColor: '#FAF9F7',
+                    marginBottom: '24px',
+                  }}
+                >
+                  <p style={{
+                    fontSize: '13px',
+                    fontFamily: '"DM Sans", system-ui, sans-serif',
+                    color: '#888',
+                    margin: 0,
+                  }}>
+                    {bulkUploadProgress ? `Uploading ${bulkUploadProgress.current} of ${bulkUploadProgress.total}...` : 'Drop animation files here or click to select multiple (JSON, MP4, C4D, OBJ, FBX)'}
+                  </p>
+                </FileUploadZone>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {project.animations.map((anim, index) => (
@@ -2120,6 +2368,46 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
               }}>
                 Web Page Specifications
               </h2>
+
+              {/* Bulk Upload Zone — Screenshots */}
+              {isAdmin && (
+                <FileUploadZone
+                  accept="image/*"
+                  multiple={true}
+                  onUpload={(files) => {
+                    const fileArray = Array.isArray(files) ? files : [files];
+                    handleBulkUpload('webpages', fileArray, (file) => {
+                      const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                      return {
+                        id: Date.now() + Math.random(),
+                        name: name,
+                        url: '',
+                        description: '',
+                        screenshot: null,
+                        _isScreenshot: true,
+                        components: [],
+                        interactions: [],
+                      };
+                    });
+                  }}
+                  style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    borderRadius: '4px',
+                    backgroundColor: '#FAF9F7',
+                    marginBottom: '32px',
+                  }}
+                >
+                  <p style={{
+                    fontSize: '13px',
+                    fontFamily: '"DM Sans", system-ui, sans-serif',
+                    color: '#888',
+                    margin: 0,
+                  }}>
+                    {bulkUploadProgress ? `Uploading ${bulkUploadProgress.current} of ${bulkUploadProgress.total}...` : 'Drop screenshots here or click to select multiple (PNG, JPG)'}
+                  </p>
+                </FileUploadZone>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {project.webpages.map((page, index) => (
