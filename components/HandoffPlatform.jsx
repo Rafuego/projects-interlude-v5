@@ -1264,8 +1264,9 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                       return {
                         id: Date.now() + Math.random(),
                         name: name,
-                        variant: 'Primary',
                         format: file.name.split('.').pop().toUpperCase(),
+                        usage: '',
+                        preview: '◈',
                         file: null,
                         fileUrl: null,
                       };
@@ -1656,8 +1657,9 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                       return {
                         id: Date.now() + Math.random(),
                         name: name,
-                        weight: 'Regular',
-                        category: 'Sans Serif',
+                        family: '',
+                        weight: '400',
+                        usage: '',
                         file: null,
                         fileUrl: null,
                       };
@@ -1876,17 +1878,21 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                     handleBulkUpload('animations', fileArray, (file) => {
                       const name = file.name.replace(/\.[^/.]+$/, '');
                       const ext = file.name.split('.').pop().toLowerCase();
-                      let type = 'lottie';
-                      if (ext === 'mp4' || file.type.startsWith('video/')) type = 'video';
-                      else if (['c4d', 'obj', 'fbx'].includes(ext)) type = '3d';
+                      let animationType = 'lottie';
+                      let format = 'Lottie JSON';
+                      if (ext === 'mp4' || file.type.startsWith('video/')) { animationType = 'video'; format = 'MP4'; }
+                      else if (['c4d', 'obj', 'fbx'].includes(ext)) { animationType = '3d'; format = ext.toUpperCase(); }
                       return {
                         id: Date.now() + Math.random(),
                         name: name,
-                        type: type,
+                        animationType: animationType,
+                        format: format,
+                        notes: '',
                         file: null,
                         fileUrl: null,
                         animationData: null,
                         videoUrl: null,
+                        installInstructions: '',
                         embedUrl: '',
                       };
                     });
@@ -2381,12 +2387,13 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                       return {
                         id: Date.now() + Math.random(),
                         name: name,
-                        url: '',
-                        description: '',
+                        status: 'In progress',
+                        figmaLink: '',
                         screenshot: null,
                         _isScreenshot: true,
-                        components: [],
-                        interactions: [],
+                        notes: '',
+                        additionalNotes: [],
+                        links: [],
                       };
                     });
                   }}
