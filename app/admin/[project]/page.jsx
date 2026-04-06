@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getProjectById, updateProject, checkSlugAvailable, uploadFile } from '../../../lib/supabase';
+import { getProjectById, updateProject, checkSlugAvailable, supabase } from '../../../lib/supabase';
 import HandoffPlatform from '../../../components/HandoffPlatform.jsx';
 
 export default function AdminProjectPage() {
@@ -99,11 +99,28 @@ export default function AdminProjectPage() {
 
   const handleFileUpload = useCallback(async (file, folder) => {
     if (!projectId) return null;
-    const result = await uploadFile(projectId, file, folder);
-    if (result) {
-      return result.url;
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `${projectId}/${folder}/${Date.now()}-${safeName}`;
+
+      const { error } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      if (error) {
+        console.error('Upload error:', error);
+        return null;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      return null;
     }
-    throw new Error('Upload failed');
   }, [projectId]);
 
   const copyClientLink = () => {
