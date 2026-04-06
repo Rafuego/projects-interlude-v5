@@ -109,7 +109,6 @@ export default function AdminProjectPage() {
 
       if (error) {
         console.error('Storage upload error:', error);
-        alert(`Storage upload failed: ${error.message}\n\nCheck that the "project-files" bucket exists in Supabase and is set to public.`);
         return null;
       }
 
@@ -120,7 +119,6 @@ export default function AdminProjectPage() {
       return urlData.publicUrl;
     } catch (err) {
       console.error('Upload failed:', err);
-      alert(`Upload exception: ${err.message}`);
       return null;
     }
   }, [projectId]);

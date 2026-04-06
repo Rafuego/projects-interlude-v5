@@ -1246,7 +1246,7 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
               {/* Bulk Upload Zone */}
               {isAdmin && (
                 <FileUploadZone
-                  accept=".svg,.png,.pdf,image/svg+xml,image/png,application/pdf"
+                  accept="image/*,.svg,.pdf,application/pdf"
                   multiple={true}
                   onUpload={(files) => {
                     const fileArray = Array.isArray(files) ? files : [files];
@@ -1318,7 +1318,7 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                     
                     {/* Logo Preview / Upload Zone */}
                     <FileUploadZone
-                      accept=".svg,.png,.pdf"
+                      accept="image/*,.svg,.pdf,application/pdf"
                       onUpload={(file) => handleFileUpload('logos', logo.id, file)}
                       style={{
                         height: '200px',
