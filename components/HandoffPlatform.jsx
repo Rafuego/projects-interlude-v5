@@ -516,6 +516,13 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
     }
   };
 
+  // Helper: read a file as a data URL
+  const readFileAsDataUrl = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+
   // Bulk upload: accepts an array of files, a section name, and a function that creates a new item from a file
   const handleBulkUpload = async (section, files, createItemFromFile) => {
     if (!files || files.length === 0) return;
@@ -527,53 +534,37 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
       const file = files[i];
       setBulkUploadProgress({ current: i + 1, total: files.length });
       const item = createItemFromFile(file);
+      item.file = file.name;
 
-      if (onFileUpload) {
+      // Always read a local preview first so items display immediately
+      if (file.name.endsWith('.json')) {
         try {
-          const fileUrl = await onFileUpload(file, section);
-          item.file = file.name;
-          item.fileUrl = fileUrl;
-
-          // Handle Lottie JSON
-          if (file.name.endsWith('.json')) {
-            try {
-              const text = await file.text();
-              item.animationData = JSON.parse(text);
-            } catch (err) {
-              console.error('Invalid JSON:', file.name);
-            }
-          }
-        } catch (error) {
-          console.error('Upload error for', file.name, error);
-          item.file = file.name;
+          const text = await file.text();
+          item.animationData = JSON.parse(text);
+        } catch (err) {
+          console.error('Invalid JSON:', file.name);
         }
       } else {
-        // Fallback: base64 / local
-        item.file = file.name;
-        if (file.name.endsWith('.json')) {
-          try {
-            const text = await file.text();
-            item.animationData = JSON.parse(text);
-          } catch (err) {
-            console.error('Invalid JSON:', file.name);
-          }
-        } else {
-          const dataUrl = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-          });
-          item.fileUrl = dataUrl;
+        const localUrl = await readFileAsDataUrl(file);
+        item.fileUrl = localUrl;
+        if (file.type.startsWith('video/')) {
+          item.videoUrl = localUrl;
+        }
+        if (item._isScreenshot && file.type.startsWith('image/')) {
+          item.screenshot = localUrl;
+          delete item._isScreenshot;
+        }
+      }
 
-          // For video files, also set videoUrl
-          if (file.type.startsWith('video/')) {
-            item.videoUrl = dataUrl;
+      // Then try cloud upload — overwrite fileUrl with the persistent URL
+      if (onFileUpload) {
+        try {
+          const cloudUrl = await onFileUpload(file, section);
+          if (cloudUrl) {
+            item.fileUrl = cloudUrl;
           }
-          // For image files used as screenshots
-          if (item._isScreenshot && file.type.startsWith('image/')) {
-            item.screenshot = dataUrl;
-            delete item._isScreenshot;
-          }
+        } catch (error) {
+          console.error('Cloud upload failed for', file.name, '— using local preview');
         }
       }
 
