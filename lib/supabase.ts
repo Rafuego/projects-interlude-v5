@@ -117,6 +117,7 @@ export async function createProject(project: {
       typography: [],
       webpages: [],
       animations: [],
+      collateral: [],
       devNotes: [],
       helpDocs: []
     }

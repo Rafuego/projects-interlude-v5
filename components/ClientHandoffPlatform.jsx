@@ -130,6 +130,17 @@ const ClientHandoffPlatform = ({ project }) => {
         }
       }
 
+      // Collateral
+      if (project.collateral?.length > 0) {
+        const collateralFolder = zip.folder('06_Collateral');
+        for (const item of project.collateral) {
+          if (item.fileUrl) {
+            const filename = item.fileName || item.file || `${item.name || 'file'}.${(item.fileType || 'file').toLowerCase()}`;
+            await addFileToZip(collateralFolder, item.fileUrl, filename);
+          }
+        }
+      }
+
       // Generate and download ZIP
       const content = await zip.generateAsync({ type: 'blob' });
       const link = document.createElement('a');
@@ -158,6 +169,7 @@ const ClientHandoffPlatform = ({ project }) => {
     { id: 'typography', label: 'Typography' },
     { id: 'webpages', label: 'Web Pages' },
     { id: 'animations', label: 'Animations' },
+    { id: 'collateral', label: 'Collateral' },
     { id: 'notes', label: 'Dev Notes' },
   ];
 
@@ -171,6 +183,7 @@ const ClientHandoffPlatform = ({ project }) => {
       case 'typography': return project.typography?.length > 0;
       case 'webpages': return project.webpages?.length > 0;
       case 'animations': return project.animations?.length > 0;
+      case 'collateral': return project.collateral?.length > 0;
       case 'notes': return project.devNotes?.length > 0 || project.helpDocs?.length > 0;
       default: return true;
     }
@@ -414,6 +427,16 @@ const ClientHandoffPlatform = ({ project }) => {
                     </p>
                     <p style={{ fontSize: '13px', fontFamily: '"DM Sans", system-ui, sans-serif', color: '#888' }}>
                       Animation Files
+                    </p>
+                  </div>
+                )}
+                {project.collateral?.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: '48px', fontWeight: '300', marginBottom: '8px' }}>
+                      {project.collateral.length}
+                    </p>
+                    <p style={{ fontSize: '13px', fontFamily: '"DM Sans", system-ui, sans-serif', color: '#888' }}>
+                      Collateral Files
                     </p>
                   </div>
                 )}
@@ -1311,6 +1334,128 @@ const ClientHandoffPlatform = ({ project }) => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* Collateral Section */}
+          {activeSection === 'collateral' && (
+            <section>
+              <h2 style={{
+                fontSize: '14px',
+                fontFamily: '"DM Sans", system-ui, sans-serif',
+                fontWeight: '500',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#A89585',
+                marginBottom: '48px',
+              }}>
+                Collateral
+              </h2>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '32px',
+              }}>
+                {(project.collateral || []).map((item) => {
+                  const isImage = item.fileUrl && /\.(png|jpe?g|gif|svg|webp)$/i.test(item.fileName || item.file || '');
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        border: '1px solid #E8E4DE',
+                        backgroundColor: '#fff',
+                      }}
+                    >
+                      <div style={{
+                        height: '200px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#FAF9F7',
+                        borderBottom: '1px solid #E8E4DE',
+                      }}>
+                        {isImage ? (
+                          <img src={item.fileUrl} alt={item.name} style={{ maxHeight: '120px', maxWidth: '80%', objectFit: 'contain' }} />
+                        ) : (
+                          <div style={{ textAlign: 'center' }}>
+                            <span style={{ fontSize: '36px', display: 'block', marginBottom: '8px' }}>📄</span>
+                            <span style={{
+                              fontSize: '11px',
+                              fontFamily: '"DM Sans", system-ui, sans-serif',
+                              color: '#888',
+                            }}>
+                              {item.fileName || item.file}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ padding: '24px' }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '12px',
+                        }}>
+                          <p style={{ fontSize: '18px', fontWeight: '500', margin: 0 }}>
+                            {item.name || 'Untitled'}
+                          </p>
+                          {item.fileType && (
+                            <span style={{
+                              fontSize: '11px',
+                              fontFamily: '"DM Sans", system-ui, sans-serif',
+                              color: '#888',
+                              backgroundColor: '#F0EDE8',
+                              padding: '4px 10px',
+                              borderRadius: '2px',
+                              flexShrink: 0,
+                              marginLeft: '12px',
+                            }}>
+                              {item.fileType}
+                            </span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p style={{
+                            fontSize: '14px',
+                            fontFamily: '"DM Sans", system-ui, sans-serif',
+                            color: '#666',
+                            lineHeight: 1.5,
+                            margin: '0 0 20px 0',
+                          }}>
+                            {item.description}
+                          </p>
+                        )}
+                        {item.fileUrl && (
+                          <a
+                            href={item.fileUrl}
+                            download={item.fileName || item.file}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-block',
+                              padding: '10px 20px',
+                              backgroundColor: 'transparent',
+                              border: '1px solid #2C2C2C',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontFamily: '"DM Sans", system-ui, sans-serif',
+                              fontWeight: '500',
+                              letterSpacing: '0.08em',
+                              textTransform: 'uppercase',
+                              textDecoration: 'none',
+                              color: '#2C2C2C',
+                            }}
+                          >
+                            Download
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}

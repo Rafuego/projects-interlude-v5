@@ -345,6 +345,7 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
     figmaLink: "",
     webpages: [],
     animations: [],
+    collateral: [],
     devNotes: [],
     helpDocs: []
   };
@@ -440,6 +441,7 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
     { id: 'typography', label: 'Typography' },
     { id: 'webpages', label: 'Web Pages' },
     { id: 'animations', label: 'Animations' },
+    { id: 'collateral', label: 'Collateral' },
     { id: 'notes', label: 'Dev Notes' },
   ];
 
@@ -469,10 +471,11 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
           };
           reader.readAsText(file);
         } else {
+          const ext = file.name.split('.').pop()?.toUpperCase() || '';
           setProject(prev => ({
             ...prev,
-            [section]: prev[section].map(item => 
-              item.id === id ? { ...item, file: file.name, fileUrl } : item
+            [section]: prev[section].map(item =>
+              item.id === id ? { ...item, file: file.name, fileUrl, fileName: file.name, ...(section === 'collateral' ? { fileType: ext } : {}) } : item
             )
           }));
         }
@@ -831,6 +834,16 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                     Animation Files
                   </p>
                 </div>
+                {(project.collateral?.length > 0) && (
+                  <div>
+                    <p style={{ fontSize: '48px', fontWeight: '300', marginBottom: '8px' }}>
+                      {project.collateral.length}
+                    </p>
+                    <p style={{ fontSize: '13px', fontFamily: '"DM Sans", system-ui, sans-serif', color: '#888' }}>
+                      Collateral Files
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Figma Link */}
@@ -2921,6 +2934,205 @@ const HandoffPlatform = ({ projectSlug = null, initialProject = null, onSave = n
                   }}
                 >
                   + Add Web Page
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* Collateral Section */}
+          {activeSection === 'collateral' && (
+            <section>
+              <h2 style={{
+                fontSize: '14px',
+                fontFamily: '"DM Sans", system-ui, sans-serif',
+                fontWeight: '500',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#A89585',
+                marginBottom: '48px',
+              }}>
+                Collateral
+              </h2>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '32px',
+              }}>
+                {(project.collateral || []).map((item) => {
+                  const isImage = item.fileUrl && /\.(png|jpe?g|gif|svg|webp)$/i.test(item.fileName || item.file || '');
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        border: '1px solid #E8E4DE',
+                        backgroundColor: '#fff',
+                        position: 'relative',
+                      }}
+                    >
+                      <button
+                        onClick={() => removeItem('collateral', item.id)}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: '#fff',
+                          border: '1px solid #E8E4DE',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          cursor: 'pointer',
+                          color: '#888',
+                          fontSize: '14px',
+                          zIndex: 10,
+                        }}
+                      >
+                        ×
+                      </button>
+
+                      <FileUploadZone
+                        accept="*"
+                        onUpload={(file) => handleFileUpload('collateral', item.id, file)}
+                        style={{
+                          height: '200px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexDirection: 'column',
+                          backgroundColor: '#FAF9F7',
+                          borderBottom: '1px solid #E8E4DE',
+                        }}
+                      >
+                        {item.fileUrl ? (
+                          isImage ? (
+                            <img src={item.fileUrl} alt={item.name} style={{ maxHeight: '120px', maxWidth: '80%', objectFit: 'contain' }} />
+                          ) : (
+                            <div style={{ textAlign: 'center' }}>
+                              <span style={{ fontSize: '36px', display: 'block', marginBottom: '8px' }}>📄</span>
+                              <span style={{
+                                fontSize: '11px',
+                                fontFamily: '"DM Sans", system-ui, sans-serif',
+                                color: '#888',
+                              }}>
+                                {item.fileName || item.file}
+                              </span>
+                            </div>
+                          )
+                        ) : (
+                          <>
+                            <span style={{ fontSize: '36px', marginBottom: '12px' }}>+</span>
+                            <span style={{
+                              fontSize: '11px',
+                              fontFamily: '"DM Sans", system-ui, sans-serif',
+                              color: '#A89585',
+                            }}>
+                              Click or drag to upload any file
+                            </span>
+                          </>
+                        )}
+                      </FileUploadZone>
+
+                      <div style={{ padding: '24px' }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '16px',
+                        }}>
+                          <EditableField
+                            value={item.name}
+                            onChange={(val) => {
+                              setProject(prev => ({
+                                ...prev,
+                                collateral: prev.collateral.map(c => c.id === item.id ? { ...c, name: val } : c)
+                              }));
+                            }}
+                            placeholder="Item name (e.g. Business Card)"
+                            style={{ fontSize: '18px', fontWeight: '500' }}
+                          />
+                          {item.fileType && (
+                            <span style={{
+                              fontSize: '11px',
+                              fontFamily: '"DM Sans", system-ui, sans-serif',
+                              color: '#888',
+                              backgroundColor: '#F0EDE8',
+                              padding: '4px 10px',
+                              borderRadius: '2px',
+                              flexShrink: 0,
+                              marginLeft: '12px',
+                            }}>
+                              {item.fileType}
+                            </span>
+                          )}
+                        </div>
+                        <EditableField
+                          value={item.description}
+                          onChange={(val) => {
+                            setProject(prev => ({
+                              ...prev,
+                              collateral: prev.collateral.map(c => c.id === item.id ? { ...c, description: val } : c)
+                            }));
+                          }}
+                          placeholder="Description or usage notes"
+                          multiline
+                          style={{
+                            fontSize: '14px',
+                            fontFamily: '"DM Sans", system-ui, sans-serif',
+                            color: '#666',
+                            lineHeight: 1.5,
+                          }}
+                        />
+                        {item.fileUrl && (
+                          <a
+                            href={item.fileUrl}
+                            download={item.fileName || item.file}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-block',
+                              marginTop: '20px',
+                              padding: '10px 20px',
+                              backgroundColor: 'transparent',
+                              border: '1px solid #2C2C2C',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontFamily: '"DM Sans", system-ui, sans-serif',
+                              fontWeight: '500',
+                              letterSpacing: '0.08em',
+                              textTransform: 'uppercase',
+                              textDecoration: 'none',
+                              color: '#2C2C2C',
+                            }}
+                          >
+                            Download
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Add Collateral Button */}
+                <button
+                  onClick={() => addItem('collateral', {
+                    name: "",
+                    description: "",
+                    fileType: "",
+                    file: null,
+                    fileUrl: null,
+                    fileName: null,
+                  })}
+                  style={{
+                    height: '300px',
+                    border: '2px dashed #E8E4DE',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontFamily: '"DM Sans", system-ui, sans-serif',
+                    color: '#888',
+                  }}
+                >
+                  + Add Collateral
                 </button>
               </div>
             </section>
