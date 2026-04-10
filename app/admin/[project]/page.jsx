@@ -66,6 +66,7 @@ export default function AdminProjectPage() {
         typography: updatedProject.typography,
         webpages: updatedProject.webpages,
         animations: updatedProject.animations,
+        collateral: updatedProject.collateral || [],
         devNotes: updatedProject.devNotes,
         helpDocs: updatedProject.helpDocs,
       }
